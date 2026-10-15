@@ -5,6 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 
+/**
+ * SirenBootReceiver
+ *
+ * Direct-boot aware broadcast receiver that wakes QIEZKA on device boot or power-on.
+ */
 class SirenBootReceiver : BroadcastReceiver() {
 
     companion object {
@@ -24,14 +29,23 @@ class SirenBootReceiver : BroadcastReceiver() {
         Log.i(TAG, "Boot detected [${intent.action}] — waking target: ${SirenConfig.TARGET_PACKAGE}")
 
         try {
+            // 1. Send broadcast
             val reviveIntent = Intent(SirenConfig.REVIVE_ACTION).apply {
                 setPackage(SirenConfig.TARGET_PACKAGE)
                 addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
             }
             context.sendBroadcast(reviveIntent)
-            Log.i(TAG, "Target revival broadcast sent on boot.")
+
+            // 2. Cold-start ping
+            context.contentResolver.call(
+                SirenConfig.TARGET_PROVIDER_URI,
+                "ping",
+                null,
+                null
+            )
+            Log.i(TAG, "Target revival broadcast and IPC ping sent on boot.")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send revival broadcast on boot: ${e.message}")
+            Log.e(TAG, "Failed waking target on boot: ${e.message}")
         }
     }
 }

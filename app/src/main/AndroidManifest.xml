@@ -2,10 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <queries>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.HOME" />
-        </intent>
+        <package android:name="com.uncode.app" />
     </queries>
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -19,8 +16,51 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SirenProxy">
 
+        <!-- ===== 24/7 Digital Assistant Watchdog Service ===== -->
+        <!-- Bound at boot by VoiceInteractionManagerService with BIND_IMPORTANT when set as Default Assistant -->
+        <service
+            android:name=".SirenVoiceInteractionService"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:exported="true">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+
+        <!-- ===== Mandatory Companion Assist Session Service ===== -->
+        <!-- Suppresses UI overlays immediately via hide() when assist gesture is triggered -->
+        <service
+            android:name=".SirenVoiceInteractionSessionService"
+            android:permission="android.permission.BIND_VOICE_INTERACTION"
+            android:exported="true" />
+
+        <!-- ===== Mandatory Recognition Service Stub ===== -->
+        <!-- Required by Android OS for VoiceInteractionService validity -->
+        <service
+            android:name=".SirenRecognitionService"
+            android:label="@string/app_name"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <!-- ===== SIREN Silent IPC ContentProvider ===== -->
+        <!-- Reciprocal resurrection target for QIEZKA's kernel linkToDeath -->
+        <provider
+            android:name=".SirenKeepAliveProvider"
+            android:authorities="com.siren.homeproxy.provider"
+            android:exported="true" />
+
+        <!-- ===== Transparent Role Request Activity ===== -->
+        <!-- Invokes RoleManager.createRequestRoleIntent(ROLE_ASSISTANT) without leaving recents history -->
         <activity
-            android:name=".SirenHomeActivity"
+            android:name=".SirenRoleActivity"
             android:label="@string/app_name"
             android:icon="@drawable/ic_transparent"
             android:theme="@style/Theme.SirenProxy"
@@ -30,17 +70,40 @@
             android:noHistory="true"
             android:clearTaskOnLaunch="true"
             android:exported="true">
-            <intent-filter android:priority="1">
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
             <intent-filter>
-                <action android:name="com.siren.homeproxy.ACTION_REQUEST_HOME" />
+                <action android:name="com.siren.homeproxy.ACTION_REQUEST_ASSISTANT" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
+        <!-- ===== Silent Assist & Voice Command Interceptor Activity ===== -->
+        <!-- Catches long-press assist/voice triggers and finishes in < 1ms to prevent Google App redirects -->
+        <activity
+            android:name=".SirenAssistActivity"
+            android:label="@string/app_name"
+            android:icon="@drawable/ic_transparent"
+            android:theme="@style/Theme.SirenProxy"
+            android:launchMode="singleInstance"
+            android:stateNotNeeded="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:clearTaskOnLaunch="true"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.ASSIST" />
+                <action android:name="android.intent.action.VOICE_ASSIST" />
+                <action android:name="android.intent.action.VOICE_COMMAND" />
+                <action android:name="android.speech.action.VOICE_SEARCH_HANDS_FREE" />
+                <action android:name="android.speech.action.WEB_SEARCH" />
+                <action android:name="android.intent.action.SEARCH_LONG_PRESS" />
+                <action android:name="com.google.android.search.core.action.PROXY_VOICE_BUTTON" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.VOICE" />
+            </intent-filter>
+        </activity>
+
+        <!-- ===== SIREN Boot Receiver ===== -->
+        <!-- Wakes QIEZKA on device boot via ACTION_REVIVE and IPC cold-start ping -->
         <receiver
             android:name=".SirenBootReceiver"
             android:exported="true"

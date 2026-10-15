@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.siren.homeproxy.SirenVoiceInteractionSessionService"
+    android:recognitionService="com.siren.homeproxy.SirenRecognitionService"
+    android:supportsAssist="true"
+    android:supportsLocalInteraction="false" />
